@@ -5,69 +5,138 @@
 //这里的复杂不光是指迷宫有多个出口，同时路径上可能带环
 /////////////////////////////////////////////
 //实现一个递归版本
+int ExitWithCycle(Maze* m,Point pt,Point entry)//判断依据没有变
+{
+    (void)m;
+    //1当前点是不是入口，若为入口，就不是出口
+    if(pt.x==entry.x&&pt.y==entry.y)
+    {
+        return 0;
+    }
+    //2.如果当前点在边界上，就是出口
+    if(pt.x==0||pt.y==0||pt.x== ROW-1||pt.y==COL-1)
+    {
+        return 1;
+    }
+    return 0;
+}
 void MarkWithCycle(Maze* m,Point cur,Point pre)
 {
     //先判断是入口点的情况，不能+1，应该直接赋值为2；
-    //    if(pre.x==-1&&pre.y==-1)
-    //   {
-    //=2
-    //return
-    //  }
+    if(pre.x==-1&&pre.y==-1)
+    {
+        m->maze[cur.x][cur.y]=2;
+        return;
+    }
     //取出pre_value
     //让这个点的值=pre_value+1
+    m->maze[cur.x][cur.y]=m->maze[pre.x][pre.y]+1;
 
 }
 int CanStayWithCycle(Maze* m,Point cur,Point pre)
 {
-    //1.判断当前点是否在地图上
-    //2.当前点是不是墙
-    //3.如果当前点是1，这是可以直接落脚的
-    //4.当前点如果已经走过了，比较cur对应的值和pre的值的大小关系
+    if(m==NULL)
+    {
+        return 0;
+    }
+    (void)m;
+    //0.在地图外
+    if(cur.x<0||cur.x>=ROW||cur.y<0||cur.y>=COL)
+    {
+        return 0;
+    }
+    //1.如果当前点是1，这是可以直接落脚的
+    if(m->maze[cur.x][cur.y]==1)
+    {
+        return 1;
+    }
+    //2.当前点如果已经走过了，比较cur对应的值和pre的值的大小关系
     //   a.cur_value 7,pre_value 5 应该落脚 更短
     //   b.cur_value 6,pre_value 5 不应该落脚 一样,没必要
     //   c.cur_value 5,pre_value 5 不应该落脚 更长
-//    //  规则是：cur_value > pre_value+1 就应该可以落脚
-//    if (条件)
-//    {
-//        return 1;
-//    }
-//    return 0;
+    if(m->maze[pre.x][pre.y]+1<m->maze[cur.x][cur.y])
+    {
+        return 1;
+    }
+    return 0;
 
 }
 void _GetShortPathWithCycle(Maze* m,Point cur,Point pre,Point entry,SeqStack* cur_path,SeqStack* short_path)
 {
+    printf("(%d,%d)\n",cur.x,cur.y);
     //1.判定当前点是否能落脚(判定规则变了)
-    //CanStayWithCycle()
+    if(!CanStayWithCycle(m,cur,pre))
+    {
+        return;
+    }
     //2.标记当前点，标记规则变了，并且将当前点插入到cur_path
-    //MarkWithCycle();
+    MarkWithCycle(m,cur,pre);
+    SeqStackPush(cur_path,cur);
+    pre=cur;
     //3.判定当前点是否是出口
-    //  是出口，要拿cur_path和short_path进行pk（或者short空栈），把比较短的路径保存到short_path(seqstackassign)
-    //  不管当前这条路径是不是比较短的都要进行回溯。
+    if(ExitWithCycle(m,cur,entry))
+    {
+        //  是出口，要拿cur_path和short_path进行pk（或者short空栈），把比较短的路径保存到short_path(seqstackassign)
+        //  不管当前这条路径是不是比较短的都要进行回溯。
+        printf("找到了一条路径\n");
+        if(cur_path->size<short_path->size||short_path->size==0)
+        {
+            SeqStackAssign(cur_path,short_path);
+            printf("找到了一条比较短的路径\n");
+        }
+        SeqStackPop(cur_path);
+        return;
+    }
     //4.不是出口，探测四个方向。（顺时针）
+    Point up=cur;
+    up.x-=1;
+    _GetShortPathWithCycle(m,up,pre,entry,cur_path,short_path);
+
+    Point right=cur;
+    right.y+=1;
+    _GetShortPathWithCycle(m,right,pre,entry,cur_path,short_path);
+
+    Point down=cur;
+    down.x+=1;
+    _GetShortPathWithCycle(m,down,pre,entry,cur_path,short_path);
+
+    Point left=cur;
+    left.y-=1;
+    _GetShortPathWithCycle(m,left,pre,entry,cur_path,short_path);
     //5.如果四个方向都探测过了，就出栈回溯
+    SeqStackPop(cur_path);
+    return;
 }
 void GetShortPathWithCycle(Maze* maze,Point entry)
 {
-  //  SeqStack cur_path;
-  //  SeqStack short_path;
-  //  SeqStackInit(&cur_path);
-  //  SeqStackInit(&short_path);
-  //  Point pre={-1,-1};//虚拟一个非法点
-  //  _GetShortPathWithCycle(maze,entry,pre,entry,&cur_path,&short_path);//5个参数
-  //  //打印
-
+    SeqStack cur_path;
+    SeqStack short_path;
+    SeqStackInit(&cur_path);
+    SeqStackInit(&short_path);
+    Point pre={-1,-1};//虚拟一个非法点
+    _GetShortPathWithCycle(maze,entry,pre,entry,&cur_path,&short_path);//5个参数
+    MazeSeqStackPrint(&short_path,"最短路径为：");
 }
-void MazeInitShortPathWithCycle()
+void MazeInitShortPathWithCycle(Maze* m)
 {
-  //  int map[ROW][COL]={
-  //      {0,1,0,0,0,0},
-  //      {0,1,1,1,0,0},
-  //      {0,1,0,1,1,1},
-  //      {1,1,1,1,0,0},
-  //      {0,0,1,0,0,0},
-  //      {0,0,1,0,0,0},
-  //  };
-  //  //循环赋值
+    int map[ROW][COL]={
+        {0,1,0,0,0,0},
+        {0,1,1,1,0,0},
+        {0,1,0,1,1,1},
+        {1,1,1,1,0,0},
+        {0,0,1,0,0,0},
+        {0,0,1,0,0,0},
+    };
+    //循环赋值
+    int i=0;
+    for(i=0;i<ROW;i++)
+    {
+        int j=0;
+        for(j=0;j<COL;j++)
+        {
+            m->maze[i][j]=map[i][j];
+        }
+    }
 }
 
 /////////////////////////////////////////////
@@ -389,10 +458,20 @@ void Test3()
     GetShortPath(&maze,entry);
     MazePrint(&maze);
 }
+void Test4()
+{
+    Maze maze;
+    MazeInitShortPathWithCycle(&maze);
+    MazePrint(&maze);
+    Point entry={0,1};
+    GetShortPathWithCycle(&maze,entry);
+    MazePrint(&maze);
+}
 int main()
 {
 //    Test1();
 //    Test2();
-    Test3();
+//    Test3();
+    Test4();
     return 0;
 }
